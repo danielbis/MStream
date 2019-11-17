@@ -49,7 +49,7 @@ void ClusterFeatureVector::addDocument(const Document & document) {
         if (!it.second)
             wordFreq.at(it.first->first) += x.second;
 
-        wordCount += 1;
+        wordCount += x.second;
     }
     documentCount += 1;
 }

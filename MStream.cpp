@@ -5,6 +5,7 @@
 #include "MStream.h"
 #include "ClusterFeatureVector.h"
 #include <vector>
+#include <random>
 
 MStream::MStream(const double _alpha, const double _beta, unsigned int _vocabSize) {
     alpha = _alpha;
@@ -13,6 +14,21 @@ MStream::MStream(const double _alpha, const double _beta, unsigned int _vocabSiz
     wordCount = 0;
     vocabSize = _vocabSize;
     clusters = vector<ClusterFeatureVector>(1,ClusterFeatureVector());  // one empty cluster
+}
+
+void MStream::run(unsigned int iterNo, const vector<vector<Document>> & batches) {
+
+    // run first iter
+    for (auto& batch: batches){
+        onePass(batch);
+    }
+    unsigned int iteration = 2;
+    for (; iteration <= iterNo; ++iteration){
+
+    }
+
+
+
 }
 
 double MStream::newClusterProb(const Document & document) const{
@@ -71,19 +87,69 @@ double MStream::existingClusterProb(const Document & document, unsigned int clus
 
 void MStream::onePass(const vector<Document> & batch) {
 
-    auto it = batch.begin();
+    vector <vector <double>> distributions;
+    bool wasEmpty = getDistributions(batch, distributions);
+
+
+    auto distrIter = distributions.begin();
+    unsigned int i = 0;
+    if (wasEmpty)
+        i += 1;
+
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine generator (seed);
+    for (; distrIter != distributions.end(); ++distrIter){
+        discrete_distribution<int>docDistribution(distrIter->begin(), distrIter->end()) ;
+        int sampledClusterIdx = docDistribution(generator);
+        addDocument(batch, i, sampledClusterIdx);
+
+    }
+
+
+}
+
+void MStream::addDocument(const vector<Document> &batch, unsigned int i, int sampledClusterIdx) {
+    if (sampledClusterIdx >= clusters.size())  // new cluster selected
+        clusters.emplace_back(ClusterFeatureVector(batch[i]));
+    else  // existing cluster selected
+        clusters[sampledClusterIdx].addDocument(batch[i]);
+
+    // update documentId to cluster mapping
+    auto it = doc2cluster.emplace(batch[i].getDocId(), sampledClusterIdx);
+    if (!it.second)
+        doc2cluster.at(it.first->first) = sampledClusterIdx;
+
+    // Update the vocabulary
+    for (auto& x: batch[i].getWordFreq()){
+        auto it = wordFreq.emplace(x.first, x.second); // if word not in cluster add to it
+        // if word was already in the cluster, just increase its frequency
+        if (!it.second)
+            wordFreq.at(it.first->first) += x.second;
+
+        wordCount += x.second;
+    }
+    // update the documents count
+    documentCount += 1;
+
+}
+
+bool MStream::getDistributions(const vector<Document> &batch, vector<vector<double>> &distributions) {
+    auto documentsIter = batch.begin();
+    bool wasEmpty = false;
     if (documentCount == 0){
         /*
          * Create a new cluster
          * update stats
          */
+        wasEmpty = true;
         clusters.emplace_back(ClusterFeatureVector(batch[0]));
         documentCount += 1;
         wordCount += batch[0].getWordCount();
-        ++it; //move on to the next sample
+        ++documentsIter; //move on to the next sample
     }
 
-    for (; it != batch.end(); ++it){
+    for (; documentsIter != batch.end(); ++documentsIter){
+        vector <double> single_distribution;
         /*
          * Compute the probability of document d choosing each of the
             K existing clusters and a new cluster.
@@ -92,11 +158,25 @@ void MStream::onePass(const vector<Document> & batch) {
          */
         // note that each cluster probability can be computed in parallel
         // threads get clusters / thread_count clusters to compute probs
-
-
+        for (unsigned int i=0; i < clusters.size(); ++i){
+            single_distribution.push_back(existingClusterProb(*documentsIter, i));
+        }
+        single_distribution.push_back(newClusterProb(*documentsIter));
+        distributions.emplace_back(single_distribution);
     }
 
+    return wasEmpty;
+}
 
+void MStream::updateVocabSize() {
+
+    unsigned int temp = 0;
+    for (auto& it: wordFreq){
+        if (it.second > 0){
+            temp += 1;
+        }
+    }
+    vocabSize = temp;
 }
 
 
