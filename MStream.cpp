@@ -6,25 +6,46 @@
 #include "ClusterFeatureVector.h"
 #include <vector>
 #include <random>
+#include <fstream>
 
-MStream::MStream(const double _alpha, const double _beta, unsigned int _vocabSize) {
+MStream::MStream(const double _alpha, const double _beta, const string &_outputDir) {
     alpha = _alpha;
     beta = _beta;
     documentCount = 0;
     wordCount = 0;
-    vocabSize = _vocabSize;
-    clusters = vector<ClusterFeatureVector>(1,ClusterFeatureVector());  // one empty cluster
+    vocabSize = 0;
+    //clusters  // one empty cluster
+    outputDir = _outputDir;
 }
 
-void MStream::run(unsigned int iterNo, const vector<vector<Document>> & batches) {
+void MStream::run(const unsigned int iterNo, const vector<vector<Document>> &batches) {
 
     // run first iter
+    int currentBatchNo = 0;
     for (auto& batch: batches){
-        onePass(batch);
+        onePass(batch, false, false);
+        if (iterNo == 1){
+            output(batch, currentBatchNo);
+        }
+        currentBatchNo += 1;
+
+
+        // save output after every batch
     }
     unsigned int iteration = 2;
     for (; iteration <= iterNo; ++iteration){
-
+        currentBatchNo = 0;
+        for (auto& batch: batches) {
+            if (iteration == iterNo) {
+                onePass(batch, true, true);
+                // save output after every batch
+                output(batch, currentBatchNo);
+            }
+            else {
+                onePass(batch, true, false);
+            }
+            currentBatchNo += 1;
+        }
     }
 
 
@@ -62,7 +83,7 @@ double MStream::existingClusterProb(const Document & document, unsigned int clus
     unsigned long int noWords = clusters[cluster_idx].getWordCount(); // n_z in the paper, words in cluster
     double topRight = 1;
     double bottomRight = 1;
-    double leftSide = clusters[cluster_idx].getDocumentCount() / documentCount-1 + alpha*documentCount;
+    double leftSide = clusters[cluster_idx].getDocumentCount() / (documentCount-1 + alpha*documentCount);
 
     int freqOfWinZ = 0;
     for (auto& x: document.getWordFreq()){ //product over words in d
@@ -85,46 +106,56 @@ double MStream::existingClusterProb(const Document & document, unsigned int clus
 }
 
 
-void MStream::onePass(const vector<Document> & batch) {
-
-    vector <vector <double>> distributions;
-    bool wasEmpty = getDistributions(batch, distributions);
-
-
-    auto distrIter = distributions.begin();
-    unsigned int i = 0;
-    if (wasEmpty)
-        i += 1;
+void MStream::onePass(const vector<Document> &batch, const bool delete_first, const bool lastIter) {
 
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator (seed);
-    for (; distrIter != distributions.end(); ++distrIter){
-        discrete_distribution<int>docDistribution(distrIter->begin(), distrIter->end()) ;
-        int sampledClusterIdx = docDistribution(generator);
-        addDocument(batch, i, sampledClusterIdx);
+    for (auto& batchIter: batch){
+        if (delete_first) // this is true for iteration number > 1
+            deleteDocument(batchIter);
+
+        vector <double> distribution;
+        bool wasEmpty = getDistributions(batchIter, distribution);
+        if (wasEmpty){
+            addDocument(batchIter, 0);
+        }
+        else {
+            if (lastIter)  // greedy
+            {
+                int sampledClusterIdx = distance(distribution.begin(), max_element(distribution.begin(), distribution.end()));
+                addDocument(batchIter, sampledClusterIdx);
+            }
+            else {
+                discrete_distribution<int> docDistribution(distribution.begin(), distribution.end());
+                int sampledClusterIdx = docDistribution(generator);
+                addDocument(batchIter, sampledClusterIdx);
+            }
+        }
 
     }
 
 
 }
 
-void MStream::addDocument(const vector<Document> &batch, unsigned int i, int sampledClusterIdx) {
+void MStream::addDocument(const Document &document, int sampledClusterIdx) {
     if (sampledClusterIdx >= clusters.size())  // new cluster selected
-        clusters.emplace_back(ClusterFeatureVector(batch[i]));
+        clusters.emplace_back(ClusterFeatureVector(document));
     else  // existing cluster selected
-        clusters[sampledClusterIdx].addDocument(batch[i]);
+        clusters[sampledClusterIdx].addDocument(document);
 
     // update documentId to cluster mapping
-    auto it = doc2cluster.emplace(batch[i].getDocId(), sampledClusterIdx);
+    auto it = doc2cluster.emplace(document.getDocId(), sampledClusterIdx);
     if (!it.second)
         doc2cluster.at(it.first->first) = sampledClusterIdx;
 
     // Update the vocabulary
-    for (auto& x: batch[i].getWordFreq()){
-        auto it = wordFreq.emplace(x.first, x.second); // if word not in cluster add to it
+    for (auto& x: document.getWordFreq()){
+        auto vocabIt = wordFreq.emplace(x.first, x.second); // if word not in cluster add to vocabIt
         // if word was already in the cluster, just increase its frequency
-        if (!it.second)
-            wordFreq.at(it.first->first) += x.second;
+        if (!vocabIt.second)
+            wordFreq.at(vocabIt.first->first) += x.second;
+        else  // new word --> increase vocabSize
+            vocabSize += 1;
 
         wordCount += x.second;
     }
@@ -133,50 +164,64 @@ void MStream::addDocument(const vector<Document> &batch, unsigned int i, int sam
 
 }
 
-bool MStream::getDistributions(const vector<Document> &batch, vector<vector<double>> &distributions) {
-    auto documentsIter = batch.begin();
+void MStream::deleteDocument(const Document &document) {
+    int oldClusterIdx = doc2cluster.at(document.getDocId());
+    clusters[oldClusterIdx].deleteDocument(document); // remove from cluster
+    // remove from MStream global stats
+    for (auto& x: document.getWordFreq()){
+        if (wordFreq.at(x.first) - x.second < 0)
+            throw logic_error("Deleting document causes the word frequency to be negative.");
+        wordFreq.at(x.first) -= x.second;
+        wordCount -= x.second;
+        // update vocab size
+        if (wordFreq.at(x.first) == 0){
+            vocabSize -= 1;
+        }
+    }
+    documentCount -= 1;
+
+}
+
+
+
+bool MStream::getDistributions(const Document &document, vector<double> &distribution) {
+
     bool wasEmpty = false;
     if (documentCount == 0){
         /*
          * Create a new cluster
          * update stats
          */
-        wasEmpty = true;
-        clusters.emplace_back(ClusterFeatureVector(batch[0]));
-        documentCount += 1;
-        wordCount += batch[0].getWordCount();
-        ++documentsIter; //move on to the next sample
+
+        return true; //move on to the next sample
     }
 
-    for (; documentsIter != batch.end(); ++documentsIter){
-        vector <double> single_distribution;
-        /*
-         * Compute the probability of document d choosing each of the
-            K existing clusters and a new cluster.
-            Sample cluster index z for document d according to the
-            above K + 1 probabilities.
-         */
-        // note that each cluster probability can be computed in parallel
-        // threads get clusters / thread_count clusters to compute probs
-        for (unsigned int i=0; i < clusters.size(); ++i){
-            single_distribution.push_back(existingClusterProb(*documentsIter, i));
-        }
-        single_distribution.push_back(newClusterProb(*documentsIter));
-        distributions.emplace_back(single_distribution);
+    /*
+     * Compute the probability of document d choosing each of the
+        K existing clusters and a new cluster.
+        Sample cluster index z for document d according to the
+        above K + 1 probabilities.
+     */
+
+    for (unsigned int i=0; i < clusters.size(); ++i){
+        distribution.push_back(existingClusterProb(document, i));
     }
+    distribution.push_back(newClusterProb(document));
+
 
     return wasEmpty;
 }
 
-void MStream::updateVocabSize() {
+void MStream::output(const vector<Document> &batch, unsigned int batchNo) {
 
-    unsigned int temp = 0;
-    for (auto& it: wordFreq){
-        if (it.second > 0){
-            temp += 1;
-        }
+    string out_path = outputDir + "/" + "batch"+ to_string(batchNo)+ ".txt";
+    ofstream myfile;
+    myfile.open (out_path);
+    cout << "Saving batch number:\t" << batchNo << "\n";
+    for(auto& doc: batch){
+        int clusteridx = doc2cluster.at(doc.getDocId());
+        myfile << doc.getDocId() << "\t" << clusteridx << "\n";
     }
-    vocabSize = temp;
+    myfile.close();
 }
-
 
