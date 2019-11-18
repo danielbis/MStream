@@ -18,7 +18,8 @@ double beta;
 map<int, int> wordFreq;
 map<string, int> doc2cluster;
 string outputDir;
-
+unsigned int storedBatches;
+unsigned int batchesToStore;
 unsigned int vocabSize;
 public:
     MStream(const double, const double, const string &_outputDir);

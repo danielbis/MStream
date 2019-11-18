@@ -8,16 +8,18 @@ pred_dir = "/Users/daniel/Desktop/FSU/advanced_db/mstream/results/tweets"  # sys
 labels_file = "/Users/daniel/Desktop/FSU/advanced_db/mstream/data/Tweets"  # sys.argv[2]
 
 id2label = OrderedDict()
-with open(labels_file) as input:
-    for line in input:
+with open(labels_file) as input_f:
+    for line in input_f:
         obj = json.loads(line)
         id2label[obj['Id']] = int(obj['clusterNo'])
 
 id2pred = copy.deepcopy(id2label)
 pred_files = os.listdir(pred_dir)
 for f in pred_files:
-    with open(pred_dir + "/" + f, "r") as input:
-        for line in input:
+    if f[0] == '.':
+        continue
+    with open(pred_dir + "/" + f, "r") as input_f:
+        for line in input_f:
             idx, cluster_pred = line.split('\t')
             id2pred[idx] = int(cluster_pred)
 

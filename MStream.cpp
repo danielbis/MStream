@@ -16,12 +16,15 @@ MStream::MStream(const double _alpha, const double _beta, const string &_outputD
     vocabSize = 0;
     //clusters  // one empty cluster
     outputDir = _outputDir;
+    storedBatches = 0;
+    batchesToStore = 0;
 }
 
 void MStream::run(const unsigned int iterNo, const vector<vector<Document>> &batches) {
 
     // run first iter
     int currentBatchNo = 0;
+    /*
     for (auto& batch: batches){
         onePass(batch, false, false);
         if (iterNo == 1){
@@ -32,11 +35,18 @@ void MStream::run(const unsigned int iterNo, const vector<vector<Document>> &bat
 
         // save output after every batch
     }
-    unsigned int iteration = 2;
-    for (; iteration <= iterNo; ++iteration){
-        currentBatchNo = 0;
-        for (auto& batch: batches) {
-            if (iteration == iterNo) {
+    */
+    //currentBatchNo = 0;
+
+    for (auto& batch: batches){
+        unsigned int iteration = 1;
+        for (; iteration <= iterNo; ++iteration) {
+            if (iteration == 1){
+                onePass(batch, false, false);
+                if (iterNo == 1)
+                    output(batch, currentBatchNo);
+            }
+            else if (iteration == iterNo) {
                 onePass(batch, true, true);
                 // save output after every batch
                 output(batch, currentBatchNo);
@@ -44,8 +54,9 @@ void MStream::run(const unsigned int iterNo, const vector<vector<Document>> &bat
             else {
                 onePass(batch, true, false);
             }
-            currentBatchNo += 1;
         }
+        currentBatchNo += 1;
+
     }
 
 
@@ -83,7 +94,7 @@ double MStream::existingClusterProb(const Document & document, unsigned int clus
     unsigned long int noWords = clusters[cluster_idx].getWordCount(); // n_z in the paper, words in cluster
     double topRight = 1;
     double bottomRight = 1;
-    double leftSide = clusters[cluster_idx].getDocumentCount() / (documentCount-1 + alpha*documentCount);
+    double leftSide = clusters[cluster_idx].getDocumentCount() / (documentCount-1 + (alpha*documentCount));
 
     int freqOfWinZ = 0;
     for (auto& x: document.getWordFreq()){ //product over words in d
@@ -152,8 +163,12 @@ void MStream::addDocument(const Document &document, int sampledClusterIdx) {
     for (auto& x: document.getWordFreq()){
         auto vocabIt = wordFreq.emplace(x.first, x.second); // if word not in cluster add to vocabIt
         // if word was already in the cluster, just increase its frequency
-        if (!vocabIt.second)
+        if (!vocabIt.second) {
+            if (vocabIt.first->second == 0){
+                vocabSize += 1;
+            }
             wordFreq.at(vocabIt.first->first) += x.second;
+        }
         else  // new word --> increase vocabSize
             vocabSize += 1;
 
@@ -165,8 +180,12 @@ void MStream::addDocument(const Document &document, int sampledClusterIdx) {
 }
 
 void MStream::deleteDocument(const Document &document) {
+    int old_wordcount = wordCount;
     int oldClusterIdx = doc2cluster.at(document.getDocId());
+    unsigned long clusterOldCount = clusters[oldClusterIdx].getWordCount();
     clusters[oldClusterIdx].deleteDocument(document); // remove from cluster
+    if (clusters[oldClusterIdx].getWordCount() == clusterOldCount)
+        throw logic_error("No words deleted from cluster");
     // remove from MStream global stats
     for (auto& x: document.getWordFreq()){
         if (wordFreq.at(x.first) - x.second < 0)
@@ -177,6 +196,9 @@ void MStream::deleteDocument(const Document &document) {
         if (wordFreq.at(x.first) == 0){
             vocabSize -= 1;
         }
+    }
+    if (wordCount == old_wordcount){
+        throw logic_error("No words deleted from MStream");
     }
     documentCount -= 1;
 
