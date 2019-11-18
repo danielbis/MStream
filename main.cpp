@@ -21,16 +21,17 @@ int main() {
     vector<Document> documents;
     vector<vector<Document>> batchedInput;
     unsigned int batchSize = 1500;
-    string dataPath = "/Users/daniel/Desktop/FSU/advanced_db/mstream/data/Tweets_clean";
+    string dataPath = "/Users/daniel/Desktop/FSU/advanced_db/mstream/data/Tweets-T_clean";
     read_data(dataPath, documents, word2id);
     cout << "Number of documents created: " << documents.size() << endl;
     cout << "Vocabulary size: " << word2id.size() << endl;
     batch_input(batchedInput, documents, batchSize, false);
-    double alpha = 0.03;
-    double beta = 0.015;
-    unsigned int iterNo = 5;
+    double alpha = 0.025;
+    double beta = 0.02;
+    unsigned int iterNo = 2;
+    unsigned int maxBatchesToStore = 1;
     string outputDir = "/Users/daniel/Desktop/FSU/advanced_db/mstream/results/tweets";
-    MStream model(alpha, beta, outputDir);
+    MStream model(alpha, beta, outputDir, true, maxBatchesToStore);
     model.run(iterNo, batchedInput);
 
     return 0;

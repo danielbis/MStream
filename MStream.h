@@ -20,9 +20,11 @@ map<string, int> doc2cluster;
 string outputDir;
 unsigned int storedBatches;
 unsigned int batchesToStore;
+bool mStreamF;
 unsigned int vocabSize;
 public:
-    MStream(const double, const double, const string &_outputDir);
+    MStream(const double, const double, const string &_outputDir, const bool _mStreamF,
+                const unsigned int _batchesToStore);
     void run(const unsigned int iterNo, const vector<vector<Document>> &);
 
     double newClusterProb(const Document&) const; // equation (5)
@@ -33,7 +35,9 @@ public:
 
     void addDocument(const Document &document, int sampledClusterIdx);
     void deleteDocument(const Document &document);
+    void deleteBatch(const vector<Document>& batch);
     void output(const vector<Document> &batch, unsigned int batchNo);
+
 };
 
 

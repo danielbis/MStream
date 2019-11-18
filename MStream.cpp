@@ -8,7 +8,8 @@
 #include <random>
 #include <fstream>
 
-MStream::MStream(const double _alpha, const double _beta, const string &_outputDir) {
+MStream::MStream(const double _alpha, const double _beta, const string &_outputDir, const bool _mStreamF=false,
+                 const unsigned int _batchesToStore=0) {
     alpha = _alpha;
     beta = _beta;
     documentCount = 0;
@@ -17,28 +18,21 @@ MStream::MStream(const double _alpha, const double _beta, const string &_outputD
     //clusters  // one empty cluster
     outputDir = _outputDir;
     storedBatches = 0;
-    batchesToStore = 0;
+    batchesToStore = _batchesToStore;
+    mStreamF = _mStreamF;
+
 }
 
 void MStream::run(const unsigned int iterNo, const vector<vector<Document>> &batches) {
 
     // run first iter
     int currentBatchNo = 0;
-    /*
+
     for (auto& batch: batches){
-        onePass(batch, false, false);
-        if (iterNo == 1){
-            output(batch, currentBatchNo);
+        if (mStreamF){
+            if (storedBatches > batchesToStore)
+                deleteBatch(batches[currentBatchNo-batchesToStore]);
         }
-        currentBatchNo += 1;
-
-
-        // save output after every batch
-    }
-    */
-    //currentBatchNo = 0;
-
-    for (auto& batch: batches){
         unsigned int iteration = 1;
         for (; iteration <= iterNo; ++iteration) {
             if (iteration == 1){
@@ -56,6 +50,7 @@ void MStream::run(const unsigned int iterNo, const vector<vector<Document>> &bat
             }
         }
         currentBatchNo += 1;
+        storedBatches += 1;
 
     }
 
@@ -204,6 +199,13 @@ void MStream::deleteDocument(const Document &document) {
 
 }
 
+void MStream::deleteBatch(const vector<Document>& batch){
+    for (auto& document: batch){
+        deleteDocument(document);
+    }
+    storedBatches -= 1;
+
+}
 
 
 bool MStream::getDistributions(const Document &document, vector<double> &distribution) {

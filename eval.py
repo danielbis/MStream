@@ -5,7 +5,7 @@ from collections import OrderedDict
 import copy
 
 pred_dir = "/Users/daniel/Desktop/FSU/advanced_db/mstream/results/tweets"  # sys.argv[1]
-labels_file = "/Users/daniel/Desktop/FSU/advanced_db/mstream/data/Tweets"  # sys.argv[2]
+labels_file = "/Users/daniel/Desktop/FSU/advanced_db/mstream/data/Tweets-T"  # sys.argv[2]
 
 id2label = OrderedDict()
 with open(labels_file) as input_f:
