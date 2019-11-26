@@ -7,6 +7,8 @@
 #include <vector>
 #include <random>
 #include <fstream>
+#include <chrono>
+#include <algorithm>
 
 MStream::MStream(const double _alpha, const double _beta, const string &_outputDir, const bool _mStreamF=false,
                  const unsigned int _batchesToStore=0) {
@@ -27,11 +29,12 @@ void MStream::run(const unsigned int iterNo, const vector<vector<Document>> &bat
 
     // run first iter
     int currentBatchNo = 0;
-
+    auto start = chrono::high_resolution_clock::now();
+    vector<chrono::seconds > runTimes;
     for (auto& batch: batches){
         if (mStreamF){
             if (storedBatches > batchesToStore)
-                deleteBatch(batches[currentBatchNo-batchesToStore]);
+                deleteBatch(batches[currentBatchNo-batchesToStore-1]);
         }
         unsigned int iteration = 1;
         for (; iteration <= iterNo; ++iteration) {
@@ -51,11 +54,15 @@ void MStream::run(const unsigned int iterNo, const vector<vector<Document>> &bat
         }
         currentBatchNo += 1;
         storedBatches += 1;
+        auto batch_time = chrono::high_resolution_clock::now();
+        auto current_dur = chrono::duration_cast<chrono::seconds>(batch_time - start);
+        runTimes.push_back(current_dur);
 
     }
+    auto stop = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::seconds>(stop - start);
 
-
-
+    summary_output(duration, runTimes);
 }
 
 double MStream::newClusterProb(const Document & document) const{
@@ -236,16 +243,38 @@ bool MStream::getDistributions(const Document &document, vector<double> &distrib
     return wasEmpty;
 }
 
-void MStream::output(const vector<Document> &batch, unsigned int batchNo) {
+void MStream::output(const vector<Document> &batch, unsigned int batchNo) const {
 
     string out_path = outputDir + "/" + "batch"+ to_string(batchNo)+ ".txt";
     ofstream myfile;
     myfile.open (out_path);
-    cout << "Saving batch number:\t" << batchNo << "\n";
     for(auto& doc: batch){
         int clusteridx = doc2cluster.at(doc.getDocId());
         myfile << doc.getDocId() << "\t" << clusteridx << "\n";
     }
     myfile.close();
+}
+
+void MStream::summary_output(chrono::seconds dur, const vector<chrono::seconds> &runTimes) const{
+    string out_path = outputDir + "/summary.txt";
+    ofstream myfile;
+    myfile.open (out_path);
+    myfile << "Duration:" << "\t" << dur.count() << "\n";
+    myfile << "ClusterCount:" <<"\t" << countClusters() << "\n";
+    myfile << "DurationsPerBatch:" << "\t";
+    for (auto& x: runTimes){
+        myfile << x.count() << "\t";
+    }
+}
+
+int MStream::countClusters() const {
+    int counter = 0;
+
+    for (auto& x: clusters){
+        if(x.getDocumentCount() > 0){
+            counter += 1;
+        }
+    }
+    return counter;
 }
 

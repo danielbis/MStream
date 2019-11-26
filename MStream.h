@@ -4,6 +4,7 @@
 #include "Document.h"
 #include "ClusterFeatureVector.h"
 #include <vector>
+#include <chrono>
 #ifndef MSTREAM_MSTREAM_H
 #define MSTREAM_MSTREAM_H
 
@@ -36,7 +37,9 @@ public:
     void addDocument(const Document &document, int sampledClusterIdx);
     void deleteDocument(const Document &document);
     void deleteBatch(const vector<Document>& batch);
-    void output(const vector<Document> &batch, unsigned int batchNo);
+    void output(const vector<Document> &batch, unsigned int batchNo) const;
+    void summary_output(chrono::seconds dur, const vector<chrono::seconds> &runTimes) const ;
+    int countClusters() const;
 
 };
 
