@@ -12,6 +12,7 @@ These instructions will get you a copy of the project up and running on your loc
 What things you need to install the software and how to install them
 
 * [g++](https://gcc.gnu.org/)
+
 For evaluation:
 * [python 3.6] (https://docs.python-guide.org/starting/install3/linux/)
 * numpy. scipy, matplotlib
@@ -97,6 +98,9 @@ python eval.py plot_all
 ```
 
 The plots will be in the /figures directory
+
+## Pre-processing
+The original datasets were pre-processed using pre_process.py for the ease of reading them in. Both, original and pre-processed datasets can be found in /data directory. 
 
 
 ## Authors
