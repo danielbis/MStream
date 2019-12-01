@@ -103,7 +103,7 @@ The plots will be in the /figures directory
 The original datasets were pre-processed using pre_process.py for the ease of reading them in. Both, original and pre-processed datasets can be found in /data directory. 
 
 ## Results
-![alt text](https://raw.githubusercontent.com/danielbis/MStream/master/figures/alpha_nmi.png)
+![alt text](figures/alpha_nmi.png)
 
 
 ## Authors
