@@ -1,7 +1,7 @@
 # COP 5725 Course Project: MStream Implementation
 Implementation of the paper [Model-based Clustering of Short Text Streams by Yin et al.](https://weizhangltt.github.io/paper/yin-kdd18.pdf) published at KDD 2018
 
-Main alogrithms, MStream and MStreamF are implemented using C++. Evaluation is implemented in Python.  
+Main alogrithms, MStream and MStreamF, are implemented using C++. Evaluation is implemented in Python.  
 
 ## Getting Started
 
