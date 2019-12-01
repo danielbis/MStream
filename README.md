@@ -32,7 +32,7 @@ Execute the following steps from project root to set up the project structure an
 
 
 ```
-./build_structure.sh  - this will create some directories
+./build_structure.sh
 make
 ```
 
