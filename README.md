@@ -11,7 +11,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 What things you need to install the software and how to install them
 
-* [g++](https://gcc.gnu.org/)
+* [g++] (https://gcc.gnu.org/)
 
 For evaluation:
 * [python 3.6] (https://docs.python-guide.org/starting/install3/linux/)
@@ -24,7 +24,8 @@ sudo apt-get install python3.6
 python -m pip install --user numpy scipy matplotlib
 python -m pip install --user scikit-learn
 ```
-all of the above python packages can be installed using [conda] (https://docs.anaconda.com/anaconda/install/) package manager as well. 
+all of the above python packages can be installed using [conda] (https://docs.anaconda.com/anaconda/install/)
+package manager as well. 
 
 ### Installing
 
