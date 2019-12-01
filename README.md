@@ -11,10 +11,10 @@ These instructions will get you a copy of the project up and running on your loc
 
 What things you need to install the software and how to install them
 
-* [g++] (https://gcc.gnu.org/)
+* [g++](https://gcc.gnu.org/)
 
 For evaluation:
-* [python 3.6] (https://docs.python-guide.org/starting/install3/linux/)
+* [python 3.6](https://docs.python-guide.org/starting/install3/linux/)
 * numpy. scipy, matplotlib
 * scikit-learn
 
@@ -24,7 +24,7 @@ sudo apt-get install python3.6
 python -m pip install --user numpy scipy matplotlib
 python -m pip install --user scikit-learn
 ```
-all of the above python packages can be installed using [conda] (https://docs.anaconda.com/anaconda/install/)
+all of the above python packages can be installed using [conda](https://docs.anaconda.com/anaconda/install/)
 package manager as well. 
 
 ### Installing
@@ -70,7 +70,7 @@ Parameters:
 ### Running all experiments from the paper
 This will take a very long time (over 24 hours), results will be stored in the /result directory
 
-My results can be found here: [results] (https://drive.google.com/open?id=19UY6iPPlfKXlouiRVIS9HnONvuBEsCxL) 
+My results can be found here: [results](https://drive.google.com/open?id=19UY6iPPlfKXlouiRVIS9HnONvuBEsCxL) 
 
 ```
 ./mstream run_all
