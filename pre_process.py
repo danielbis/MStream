@@ -1,7 +1,6 @@
 import json
-import sys
 
-dataDir = "/home/danielbis/Desktop/mstream/data/"
+dataDir = "data/"
 for f in ["Tweets", "Tweets-T", "News", "News-T"]:
     temp_dir = dataDir + f
     print("Converting %s from json to tab separated inputs, saving to %s " % (f, f.lower().replace('-', '_')))

@@ -9,15 +9,16 @@
 #include <cstdlib>      // std::rand, std::srand
 #include <algorithm>
 #include <iomanip>
-
+#include <stdlib.h>     /* atof */
 #include "Document.h"
 #include "MStream.h"
 
 using namespace std;
 const int TWEET_SIZE = 30322;
 const int NEWS_SIZE = 11109;
-const string DATA_PATH = "/home/danielbis/Desktop/mstream/data/";
-const string RESULTS_PATH = "/home/danielbis/Desktop/mstream/results/";
+const string DATA_PATH = "./data/";
+const string RESULTS_PATH = "./results/";
+
 void read_data(const string& dataPath, vector<Document>& documents, map<string, int>& word2id);
 void batch_input(vector<vector<Document>>& batches, vector<Document>& data, unsigned int batchSize, bool toShuffle);
 void test_iterations(const string& datasetName, int noBatches, double alpha, double beta,\
@@ -30,27 +31,129 @@ void testBetas(const string& datasetName, const int noIter, const int noBatches,
                         const int toStore);
 void testStoredBatches(const string& datasetName, const int noBatches, const double alpha, const double beta,\
                         const int iterNo);
+void run_single(const string& datasetName, const bool useMstreamF, const int noBatches,
+                const double alpha, const double beta, const int noIters, const int toStore);
 
-int main() {
 
+int main(int argc, char* argv[]) {
 
+    // default parameters
     double alpha = 0.03;
     double beta = 0.03;
-    int iterNo = 10;
+    int iterNo = 2;
     int batchesNo = 16;
     int toStore = 1;
-
+    bool useMstreamF = false;
+    string dataset = "tweets";
     vector<string> datasetNames = { "tweets", "news","tweets_t", "news_t"};
-    for (auto& datasetName: datasetNames){
-        test_iterations(datasetName, batchesNo, alpha, beta, toStore);
-        testBatchSize(datasetName, iterNo, alpha, beta, toStore);
-        testAlphas(datasetName, 2, 16, beta, toStore);
-        testBetas(datasetName, 2, 16, alpha, toStore);
-        testStoredBatches(datasetName, 16, alpha,beta,iterNo);
+    if (argc < 2){
+        if (useMstreamF)
+            cout << "Running MStreamF." << endl;
+        else
+            cout << "Running MStream." << endl;
+        cout << "alpha: " << alpha << endl;
+        cout << "beta: " << beta << endl;
+        cout << "Number of iterations: " << iterNo << endl;
+        if (useMstreamF)
+            cout << "Number of batches stored: " << toStore << endl;
+        cout << "Dataset: " << dataset << endl;
+        cout << "Number of batches: " << batchesNo << endl;
+
+        run_single(dataset, useMstreamF, batchesNo, alpha, beta, iterNo, toStore);
+    }
+    else if (argc == 2){
+        string parameter = argv[1];
+        if (parameter == "run_all"){
+            for (auto& datasetName: datasetNames){
+                test_iterations(datasetName, batchesNo, alpha, beta, toStore);
+                testBatchSize(datasetName, iterNo, alpha, beta, toStore);
+                testAlphas(datasetName, 2, 16, beta, toStore);
+                testBetas(datasetName, 2, 16, alpha, toStore);
+                testStoredBatches(datasetName, 16, alpha, beta, iterNo);
+            }
+        } else{
+            dataset = argv[1];
+            if (useMstreamF)
+                cout << "Running MStreamF." << endl;
+            else
+                cout << "Running MStream." << endl;
+            cout << "alpha: " << alpha << endl;
+            cout << "beta: " << beta << endl;
+            cout << "Number of iterations: " << iterNo << endl;
+            if (useMstreamF)
+                cout << "Number of batches stored: " << toStore << endl;
+            cout << "Dataset: " << dataset << endl;
+            cout << "Number of batches: " << batchesNo << endl;
+            run_single(dataset, useMstreamF, batchesNo, alpha, beta, iterNo, toStore);
+        }
+
+    }
+    else{
+        if ((argc < 8 && argc > 2) || argc > 8){
+            cerr << "Incorrect number of arguments, check readme for usage." << endl;
+        }
+        else{
+            dataset = argv[1];
+            int temp = atoi(argv[2]);
+            if (temp == 1)
+                useMstreamF = true;
+
+            alpha = atof(argv[3]);
+            beta = atof(argv[4]);
+            iterNo = atoi(argv[5]);
+            batchesNo = atoi(argv[6]);
+            toStore = atoi(argv[7]);
+
+            if (useMstreamF)
+                cout << "Running MStreamF." << endl;
+            else
+                cout << "Running MStream." << endl;
+            cout << "alpha: " << alpha << endl;
+            cout << "beta: " << beta << endl;
+            cout << "Number of iterations: " << iterNo << endl;
+            if (useMstreamF)
+                cout << "Number of batches stored: " << toStore << endl;
+            cout << "Dataset: " << dataset << endl;
+            cout << "Number of batches: " << batchesNo << endl;
+
+            run_single(dataset, useMstreamF, batchesNo, alpha, beta, iterNo, toStore);
+        }
     }
 
 
     return 0;
+}
+
+void run_single(const string& datasetName, const bool useMstreamF, const int noBatches,
+        const double alpha, const double beta, const int noIters, const int toStore){
+
+    unsigned int batchSize = 0;
+    bool _shuffle = false;
+    string outputDir = "./demo/" + datasetName;
+
+    if (datasetName == "tweets" || datasetName == "tweets_t")
+        batchSize = ceil(TWEET_SIZE / noBatches);
+    else if (datasetName == "news" || datasetName == "news_t")
+        batchSize = ceil(NEWS_SIZE / noBatches);
+    else {
+        cout << "Dataset: " << datasetName << " not supported, exiting...\n";
+        exit(0);
+    }
+    if (datasetName == "news_t" || datasetName == "tweets_t"){
+        _shuffle = true;
+    }
+    map<string, int> word2id;
+    vector<Document> documents;
+    vector<vector<Document>> batchedInput;
+    read_data(DATA_PATH + datasetName, documents, word2id);
+    cout << "Number of documents created: " << documents.size() << endl;
+    cout << "Vocabulary size: " << word2id.size() << endl;
+
+    batch_input(batchedInput, documents, batchSize, _shuffle);
+    MStream model(alpha, beta, outputDir, useMstreamF, toStore);
+    model.run(noIters, batchedInput);
+    cout << "MStream finished successfully." << endl;
+
 }
 
 void test_iterations(const string& datasetName, const int noBatches, const double alpha, const double beta,\
@@ -126,6 +229,7 @@ void testBatchSize(const string& datasetName, const int noIter, const double alp
 
         MStream model(alpha, beta, temp_out, useMstreamF, toStore);
         model.run(noIter, batchedInput);
+        batchedInput.clear();
     }
 }
 
@@ -215,8 +319,8 @@ void testStoredBatches(const string& datasetName, const int noBatches, const dou
                         const int iterNo){
 
     unsigned int batchSize = 0;
-    bool _shuffle = false;
-    bool useMstreamF = false;
+    bool _shuffle = true;
+    bool useMstreamF = true;
     string outputDir = RESULTS_PATH + datasetName +"/stored_no/";
     if (datasetName == "tweets_t")
         batchSize = ceil(TWEET_SIZE / noBatches);
@@ -224,11 +328,10 @@ void testStoredBatches(const string& datasetName, const int noBatches, const dou
         batchSize = ceil(NEWS_SIZE / noBatches);
     else {
         cout << "Dataset: " << datasetName << " not supported, exiting...\n";
-        exit(0);
+        return;
     }
 
-    _shuffle = true;
-    useMstreamF = true;
+
 
     map<string, int> word2id;
     vector<Document> documents;

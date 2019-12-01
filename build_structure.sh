@@ -1,4 +1,12 @@
 #!/bin/bash
+
+mkdir demo
+
+mkdir demo/tweets
+mkdir demo/tweets_t
+mkdir demo/news
+mkdir demo/news_t
+
 mkdir results
 mkdir results/tweets
 mkdir results/tweets_t
