@@ -102,8 +102,14 @@ The plots will be in the /figures directory
 ## Pre-processing
 The original datasets were pre-processed using pre_process.py for the ease of reading them in. Both, original and pre-processed datasets can be found in /data directory. 
 
-## Results
+## Selected Results
+![alt text](figures/iterationsNMI.png)
 ![alt text](figures/alpha_nmi.png)
+![alt text](figures/alpha_clusters.png)
+![alt text](figures/beta_nmi.png)
+![alt text](figures/beta_clusters.png)
+![alt text](figures/News_speed.png)
+![alt text](figures/Tweets_speed.png)
 
 
 ## Authors
