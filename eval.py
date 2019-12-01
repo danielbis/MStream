@@ -124,14 +124,7 @@ def plot_eval_stored_no(labels_tweets_t, labels_news_t, variable_tested, title, 
     nmi_list_tweets_t, num_clusters_tweets_t = plot_helper(results_path + 'tweets_t/' + variable_tested,
                                                            labels_tweets_t)
     nmi_list_news_t, num_clusters_news_t = plot_helper(results_path + 'news_t/' + variable_tested, labels_news_t)
-    num_clusters_tweets_t[0] = num_clusters_tweets_t[0] + 100
-    num_clusters_news_t[0] = num_clusters_news_t[0] + 100
-    num_clusters_tweets_t[1] = num_clusters_tweets_t[1] + 100
-    num_clusters_news_t[1] = num_clusters_news_t[1] + 100
-    num_clusters_tweets_t[2] = num_clusters_tweets_t[2] + 40
-    num_clusters_news_t[2] = num_clusters_news_t[2] + 70
-    num_clusters_tweets_t[3] = num_clusters_tweets_t[3] + 40
-    num_clusters_news_t[3] = num_clusters_news_t[3] + 40
+
     # Plot NMI wrt iterations
     plt.title("NMI with respect to %s" % title)
     plt.plot(np.array(nmi_list_tweets_t), 'g^-', label='Tweets-T')
