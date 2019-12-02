@@ -3,7 +3,8 @@ import json
 dataDir = "data/"
 for f in ["Tweets", "Tweets-T", "News", "News-T"]:
     temp_dir = dataDir + f
-    print("Converting %s from json to tab separated inputs, saving to %s " % (f, f.lower().replace('-', '_')))
+    print("Converting %s from json to tab separated inputs, saving to %s " % (f, f.lower().replace('-', '_')
+                                                                              .replace('_Labels', '')))
     with open(temp_dir) as input:
         with open(dataDir + f.lower(), 'w') as out:
             for line in input:

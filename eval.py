@@ -235,10 +235,10 @@ def plot_all():
 if __name__ == "__main__":
 
     dataset_to_labels = {
-        "tweets": "Tweets",
-        "tweets_t": "Tweets-T",
-        "news": "News",
-        "news_t": "News-T"
+        "tweets": "Tweets_Labels",
+        "tweets_t": "Tweets-T_Labels",
+        "news": "News_Labels",
+        "news_t": "News-T_Labels"
     }
     if sys.argv[1] == 'plot_all':
         plot_all()
