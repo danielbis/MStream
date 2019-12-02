@@ -75,7 +75,7 @@ double MStream::newClusterProb(const Document & document) const{
     double topRight = 1;
     double bottomRight = 1;
     for (auto& x: document.getWordFreq()){
-        for (unsigned int j = 1; j <= x.second; ++j){
+        for (int j = 1; j <= x.second; ++j){
             topRight = topRight * (beta + j - 1);
         }
     }
@@ -106,7 +106,7 @@ double MStream::existingClusterProb(const Document & document, unsigned int clus
         else
             freqOfWinZ = clusterFreqMapIt->second;
 
-        for (unsigned int j = 1; j <= x.second; ++j){ //product over occurrences of a word in d
+        for (int j = 1; j <= x.second; ++j){ //product over occurrences of a word in d
             topRight = topRight * (freqOfWinZ + beta + j - 1);
         }
     }
